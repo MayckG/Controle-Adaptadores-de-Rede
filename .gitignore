@@ -1,0 +1,22 @@
+# Logs
+logs/*.log
+*.log
+
+# Estado local
+estado.json
+
+# Dados locais do Windows
+Thumbs.db
+Desktop.ini
+
+# PowerShell
+*.ps1.bak
+
+# Editor
+.vscode/
+.idea/
+
+# Artefatos
+*.zip
+*.7z
+*.rar
