@@ -31,7 +31,7 @@ if %errorlevel% neq 0 (
 
 echo.
 echo ============================================
-echo DESINSTALACAO CONCLUIDA COM SUCESSO
+echo DESINSTALACAO CONCLUIDA
 echo ============================================
 echo.
 

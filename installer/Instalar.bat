@@ -31,8 +31,10 @@ if %errorlevel% neq 0 (
 
 echo.
 echo ============================================
-echo INSTALACAO CONCLUIDA COM SUCESSO
+echo CONTROLE DE REDE - INSTALADO
 echo ============================================
+echo.
+echo Versao: 1.1.0
 echo.
 
 pause

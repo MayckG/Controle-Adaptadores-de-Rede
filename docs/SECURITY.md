@@ -2,64 +2,54 @@
 
 ## Privilégios
 
-A tarefa operacional é registrada como:
+A tarefa executa como:
 
 ```text
 NT AUTHORITY\SYSTEM
 ```
 
-com nível:
+com:
 
 ```text
-Highest
+RunLevel = Highest
 ```
 
-Isso permite executar:
-
-```powershell
-Disable-NetAdapter
-Enable-NetAdapter
-```
-
-sem depender de uma sessão interativa do usuário.
+Isso permite controlar adaptadores sem depender da sessão do usuário.
 
 ## ExecutionPolicy
 
-O projeto não modifica permanentemente a política de execução do PowerShell.
+Nenhuma política permanente do PowerShell é alterada.
 
-A opção:
+O projeto usa:
 
 ```text
 -ExecutionPolicy Bypass
 ```
 
-é aplicada somente ao processo iniciado pelo instalador ou pela tarefa.
+somente nos processos envolvidos na instalação e execução.
 
-## Estado controlado
+## Estado
 
-O Wi-Fi somente é reativado quando estiver registrado no:
+O arquivo:
 
 ```text
 estado.json
 ```
 
-como um adaptador que a própria automação desativou.
+registra somente os nomes dos adaptadores Wi-Fi que foram desativados pela automação.
 
-## Log
+## Logs
 
-O log pode conter nomes dos adaptadores de rede existentes na máquina.
+Não publique logs reais no GitHub.
 
-Por isso:
+O `.gitignore` exclui arquivos `.log`.
 
-- não publique logs reais do computador no GitHub;
-- mantenha `logs/` fora do controle de versão;
-- use `.gitignore`.
+## Recomendações
 
-## Distribuição
+Em ambiente corporativo:
 
-Antes de distribuir internamente, recomenda-se:
-
-- validar o código;
-- testar em máquinas representativas;
-- revisar políticas de segurança da organização;
-- considerar assinatura de scripts PowerShell em ambientes corporativos.
+- teste antes de distribuir;
+- valide políticas de execução;
+- considere assinatura de scripts;
+- revise o uso de `SYSTEM`;
+- distribua somente para máquinas autorizadas.

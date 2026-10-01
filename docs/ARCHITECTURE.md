@@ -1,76 +1,65 @@
-# Arquitetura
+# Arquitetura — ControleRede 1.1
 
-## Componentes
+## Fluxo
 
-### `src/ControleRede.ps1`
+```text
+Get-NetAdapter -Physical
+          |
+          +-- Ethernet físico?
+          |      |
+          |      +-- InterfaceType = 6
+          |      +-- HardwareInterface = True
+          |      +-- não contém Loopback
+          |      +-- NdisPhysicalMedium = 14 quando informado
+          |
+          +-- Link físico Connected?
+                 |
+                 +-- SIM --> desativa Wi-Fi
+                 |           registra no estado.json
+                 |
+                 +-- NÃO --> consulta estado.json
+                             |
+                             +-- reativa Wi-Fi controlado
+```
 
-Motor da automação.
+## Por que a versão 1.0 apresentou problema
 
-Responsabilidades:
+A identificação anterior utilizava somente:
 
-- descoberta de adaptadores;
-- identificação de Ethernet e Wi-Fi;
-- detecção do link físico;
-- controle dos adaptadores;
-- persistência de estado;
-- logging;
-- loop de monitoramento.
+```powershell
+InterfaceType -eq 6
+```
 
-### `installer/Config.ps1`
+Na máquina analisada, isso permitiu que:
 
-Configura o ambiente operacional.
+```text
+Topaz Loopback
+```
 
-Responsabilidades:
+fosse tratado como Ethernet conectado.
 
-- validar privilégios;
-- criar diretórios;
-- copiar o motor para `ProgramData`;
-- criar estado inicial;
-- registrar a Tarefa Agendada;
-- iniciar a tarefa.
+A consequência era que a condição Ethernet permanecia verdadeira mesmo quando o cabo físico era retirado.
 
-### `uninstaller/Desinstalar.ps1`
+## Versão 1.1
 
-Remove a instalação.
+A identificação agora exige múltiplas condições.
 
-Responsabilidades:
+A condição decisiva continua sendo:
 
-- parar a tarefa;
-- remover a tarefa;
-- remover os arquivos instalados.
+```powershell
+MediaConnectionState -eq "Connected"
+```
+
+mas somente depois que o adaptador passa pelos filtros de interface física.
 
 ## Estado
 
-A automação utiliza um modelo simples:
+O estado é persistido em:
 
 ```text
-Ethernet link = Connected
-        |
-        +--> Wi-Fi ativo -> desativa e registra
-        |
-Ethernet link = Disconnected
-        |
-        +--> Wi-Fi registrado como desativado
-                 |
-                 +--> reativa
+C:\ProgramData\ControleRede\estado.json
 ```
 
-## Frequência
+Um adaptador Wi-Fi só sai do estado quando o Windows confirma que ele deixou de estar `Disabled`.
 
-A verificação ocorre a cada 3 segundos.
-
-O intervalo pode ser alterado em:
-
-```powershell
-$IntervalSeconds = 3
-```
-
-## Adaptadores virtuais
-
-O mecanismo utiliza:
-
-```powershell
-Get-NetAdapter -Physical
-```
-
-Portanto, adaptadores virtuais de VPN, Hyper-V, VMware e similares não entram na descoberta principal.
+Se a reativação falhar, o nome permanece registrado para uma nova tentativa no próximo ciclo.

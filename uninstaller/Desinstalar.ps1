@@ -18,7 +18,10 @@ if (-not $IsAdmin) {
 
     Start-Process `
         powershell.exe `
-        -ArgumentList "-NoProfile -ExecutionPolicy Bypass -File `"$PSCommandPath`"" `
+        -ArgumentList (
+            "-NoProfile -ExecutionPolicy Bypass " +
+            "-File `"$PSCommandPath`""
+        ) `
         -Verb RunAs
 
     exit
@@ -34,12 +37,13 @@ Unregister-ScheduledTask `
     -ErrorAction SilentlyContinue
 
 if (Test-Path $BasePath) {
+
     Remove-Item `
-        $BasePath `
+        -Path $BasePath `
         -Recurse `
         -Force
 }
 
 Write-Host ""
-Write-Host "Controle Automático de Rede desinstalado."
+Write-Host "ControleRede desinstalado."
 Write-Host ""

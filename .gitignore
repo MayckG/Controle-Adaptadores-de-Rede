@@ -1,18 +1,18 @@
 # Logs
-logs/*.log
 *.log
+logs/*.log
 
 # Estado local
 estado.json
 
-# Dados locais do Windows
+# Windows
 Thumbs.db
 Desktop.ini
 
 # PowerShell
 *.ps1.bak
 
-# Editor
+# IDEs
 .vscode/
 .idea/
 

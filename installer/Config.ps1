@@ -2,6 +2,8 @@
 
 $ErrorActionPreference = "Stop"
 
+$Version = "1.1.0"
+
 $BasePath = "C:\ProgramData\ControleRede"
 $ScriptPath = Join-Path $BasePath "ControleRede.ps1"
 $LogPath = Join-Path $BasePath "logs"
@@ -9,8 +11,10 @@ $StateFile = Join-Path $BasePath "estado.json"
 
 $TaskName = "Controle Automático de Rede"
 
+$ProjectRoot = Split-Path -Parent $PSScriptRoot
+
 $SourceScript = Join-Path `
-    (Split-Path -Parent $PSScriptRoot) `
+    $ProjectRoot `
     "src\ControleRede.ps1"
 
 $Identity = [Security.Principal.WindowsIdentity]::GetCurrent()
@@ -26,14 +30,21 @@ if (-not $IsAdmin) {
 
     Start-Process `
         powershell.exe `
-        -ArgumentList "-NoProfile -ExecutionPolicy Bypass -File `"$PSCommandPath`"" `
+        -ArgumentList (
+            "-NoProfile -ExecutionPolicy Bypass " +
+            "-File `"$PSCommandPath`""
+        ) `
         -Verb RunAs
 
     exit
 }
 
 if (-not (Test-Path $SourceScript)) {
-    throw "ControleRede.ps1 não encontrado: $SourceScript"
+
+    throw (
+        "ControleRede.ps1 não encontrado: " +
+        $SourceScript
+    )
 }
 
 New-Item `
@@ -47,18 +58,19 @@ New-Item `
     -Force | Out-Null
 
 Copy-Item `
-    $SourceScript `
-    $ScriptPath `
+    -Path $SourceScript `
+    -Destination $ScriptPath `
     -Force
 
 if (-not (Test-Path $StateFile)) {
 
     '{"DisabledWifiAdapters":[]}' |
         Set-Content `
-        -Path $StateFile `
-        -Encoding UTF8
+            -Path $StateFile `
+            -Encoding UTF8
 }
 
+# Remove instalação anterior da tarefa, se existir.
 Unregister-ScheduledTask `
     -TaskName $TaskName `
     -Confirm:$false `
@@ -66,7 +78,12 @@ Unregister-ScheduledTask `
 
 $Action = New-ScheduledTaskAction `
     -Execute "powershell.exe" `
-    -Argument "-NoProfile -NonInteractive -ExecutionPolicy Bypass -WindowStyle Hidden -File `"$ScriptPath`""
+    -Argument (
+        "-NoProfile -NonInteractive " +
+        "-ExecutionPolicy Bypass " +
+        "-WindowStyle Hidden " +
+        "-File `"$ScriptPath`""
+    )
 
 $Trigger = New-ScheduledTaskTrigger `
     -AtStartup
@@ -81,7 +98,9 @@ $Settings = New-ScheduledTaskSettingsSet `
     -DontStopIfGoingOnBatteries `
     -StartWhenAvailable `
     -RestartCount 3 `
-    -RestartInterval (New-TimeSpan -Minutes 1)
+    -RestartInterval (
+        New-TimeSpan -Minutes 1
+    )
 
 Register-ScheduledTask `
     -TaskName $TaskName `
@@ -89,14 +108,20 @@ Register-ScheduledTask `
     -Trigger $Trigger `
     -Principal $TaskPrincipal `
     -Settings $Settings `
-    -Description "Controla automaticamente Wi-Fi conforme o link físico Ethernet." `
+    -Description (
+        "ControleRede $Version - " +
+        "controle automático Wi-Fi/Ethernet por link físico."
+    ) `
     -Force | Out-Null
 
 Start-ScheduledTask `
     -TaskName $TaskName
 
 Write-Host ""
-Write-Host "Controle Automático de Rede instalado."
+Write-Host "============================================"
+Write-Host "ControleRede $Version instalado."
+Write-Host "============================================"
+Write-Host ""
 Write-Host "Tarefa: $TaskName"
 Write-Host "Destino: $BasePath"
 Write-Host ""

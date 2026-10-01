@@ -1,61 +1,100 @@
 # Troubleshooting
 
-## A tarefa não iniciou
-
-Verifique:
-
-```powershell
-Get-ScheduledTask -TaskName "Controle Automático de Rede"
-```
-
-Depois:
-
-```powershell
-Get-ScheduledTaskInfo -TaskName "Controle Automático de Rede"
-```
-
-## Verificar adaptadores
+## 1. Verificar adaptadores
 
 ```powershell
 Get-NetAdapter -Physical |
-    Select-Object Name, InterfaceType, Status, MediaConnectionState
+    Select-Object Name,
+        InterfaceDescription,
+        InterfaceType,
+        HardwareInterface,
+        NdisPhysicalMedium,
+        Status,
+        MediaConnectionState
 ```
 
-## Verificar log
+## 2. Verificar a tarefa
 
-```text
-C:\ProgramData\ControleRede\logs\controle-rede.log
+```powershell
+Get-ScheduledTask `
+    -TaskName "Controle Automático de Rede"
 ```
 
-## O Wi-Fi não foi reativado
+```powershell
+Get-ScheduledTaskInfo `
+    -TaskName "Controle Automático de Rede"
+```
 
-Verifique o estado:
+## 3. Verificar estado
 
 ```text
 C:\ProgramData\ControleRede\estado.json
 ```
 
-Se o adaptador não estiver registrado, a automação deliberadamente não o reativará.
+Esperado enquanto o cabo estiver conectado:
 
-Isso evita alterar uma decisão manual anterior.
-
-## Ethernet aparece como conectado sem cabo
-
-Verifique:
-
-```powershell
-Get-NetAdapter -Physical |
-    Select-Object Name, Status, MediaConnectionState
+```json
+{
+    "DisabledWifiAdapters": [
+        "Wi-Fi"
+    ]
+}
 ```
 
-Se o driver reportar incorretamente o estado físico, a automação dependerá dessa informação fornecida pelo Windows/driver.
+Depois da reativação bem-sucedida:
 
-## Teste manual
+```json
+{
+    "DisabledWifiAdapters": []
+}
+```
+
+## 4. Verificar log
+
+```text
+C:\ProgramData\ControleRede\logs\controle-rede.log
+```
+
+Sequência esperada:
+
+```text
+ESTADO | Ethernet físico CONECTADO.
+AÇÃO | Desativando Wi-Fi: Wi-Fi
+OK | Wi-Fi desativado: Wi-Fi
+
+ESTADO | Nenhum Ethernet físico conectado.
+AÇÃO | Reativando Wi-Fi: Wi-Fi
+OK | Wi-Fi reativado: Wi-Fi
+```
+
+## 5. Topaz Loopback
+
+Se aparecer:
+
+```text
+Topaz Loopback
+```
+
+ele não deve ser considerado Ethernet físico pela versão 1.1.
+
+## 6. Reativação falha
+
+Se o log mostrar:
+
+```text
+ERRO | Falha ao reativar Wi-Fi
+```
+
+o nome permanece em `estado.json`, permitindo nova tentativa no ciclo seguinte.
+
+## 7. Teste direto
 
 Como administrador:
 
 ```powershell
-powershell.exe -ExecutionPolicy Bypass -File .\src\ControleRede.ps1
+powershell.exe `
+    -ExecutionPolicy Bypass `
+    -File .\src\ControleRede.ps1
 ```
 
 Interrompa com:
