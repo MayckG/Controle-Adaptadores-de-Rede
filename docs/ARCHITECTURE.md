@@ -1,65 +1,52 @@
-# Arquitetura — ControleRede 1.1
+# Arquitetura — ControleRede 1.2
 
-## Fluxo
+## Fluxo de decisão
 
 ```text
 Get-NetAdapter -Physical
           |
-          +-- Ethernet físico?
-          |      |
-          |      +-- InterfaceType = 6
-          |      +-- HardwareInterface = True
-          |      +-- não contém Loopback
-          |      +-- NdisPhysicalMedium = 14 quando informado
+          +-- Ethernet físico com link?
+          |      InterfaceType = 6
+          |      HardwareInterface = True
+          |      fora de ExcludedAdapterPatterns (Loopback, VPN...)
+          |      NdisPhysicalMedium = 14 quando informado
+          |      MediaConnectionState = Connected
           |
-          +-- Link físico Connected?
-                 |
-                 +-- SIM --> desativa Wi-Fi
-                 |           registra no estado.json
-                 |
-                 +-- NÃO --> consulta estado.json
-                             |
-                             +-- reativa Wi-Fi controlado
+          +-- Possui rede utilizável?
+                 IP válido (exclui APIPA 169.254.x.x e link-local IPv6)
+                 gateway padrão (configurável)
+
+Resultado:
+  Usable   -> após N confirmações: registra e desativa o Wi-Fi
+  LinkOnly -> se havia Wi-Fi controlado: reativa após a tolerância
+  NoLink   -> reativa o Wi-Fi controlado imediatamente
 ```
 
-## Por que a versão 1.0 apresentou problema
+## Ciclo
 
-A identificação anterior utilizava somente:
-
-```powershell
-InterfaceType -eq 6
-```
-
-Na máquina analisada, isso permitiu que:
-
-```text
-Topaz Loopback
-```
-
-fosse tratado como Ethernet conectado.
-
-A consequência era que a condição Ethernet permanecia verdadeira mesmo quando o cabo físico era retirado.
-
-## Versão 1.1
-
-A identificação agora exige múltiplas condições.
-
-A condição decisiva continua sendo:
-
-```powershell
-MediaConnectionState -eq "Connected"
-```
-
-mas somente depois que o adaptador passa pelos filtros de interface física.
+O loop acorda em eventos de rede (`NetworkAddressChanged`, `MSNdis_StatusMediaConnect` e `MSNdis_StatusMediaDisconnect`) ou, na falta deles, a cada `IntervalSeconds`. Após um evento, aguarda 1,5 s para que o Windows atualize link, IP e rotas.
 
 ## Estado
 
-O estado é persistido em:
+`C:\ProgramData\ControleRede\estado.json` (formato 2):
 
-```text
-C:\ProgramData\ControleRede\estado.json
+```json
+{
+    "Version": 2,
+    "ControlledWifi": [
+        {
+            "InterfaceGuid": "{...}",
+            "Name": "Wi-Fi",
+            "InterfaceDescription": "Intel(R) Wi-Fi 6 AX201"
+        }
+    ]
+}
 ```
 
-Um adaptador Wi-Fi só sai do estado quando o Windows confirma que ele deixou de estar `Disabled`.
+O Wi-Fi é registrado antes de ser desativado. Um adaptador sai do estado quando é reativado com sucesso ou quando já está ativo. Se a reativação falhar, ou o adaptador não estiver presente (ex.: USB removido), ele permanece registrado para nova tentativa.
 
-Se a reativação falhar, o nome permanece registrado para uma nova tentativa no próximo ciclo.
+O estado da versão 1.1 (`DisabledWifiAdapters`, lista de nomes) é migrado automaticamente.
+
+## Instância única
+
+Um mutex `Global\ControleRede` impede execuções simultâneas (por exemplo, a tarefa e um teste manual).

@@ -1,0 +1,17 @@
+{
+    "IntervalSeconds": 3,
+    "StableChecksBeforeDisable": 2,
+    "ConnectivityLossGraceSeconds": 15,
+    "RequireDefaultGateway": true,
+    "MaxLogBytes": 5242880,
+    "LogRetentionCount": 5,
+    "ExcludedAdapterPatterns": [
+        "Loopback",
+        "VPN",
+        "TAP-",
+        "Hyper-V",
+        "VMware",
+        "VirtualBox",
+        "Npcap"
+    ]
+}

@@ -34,7 +34,7 @@ echo ============================================
 echo CONTROLE DE REDE - INSTALADO
 echo ============================================
 echo.
-echo Versao: 1.1.0
+echo Versao: 1.2.0
 echo.
 
 pause

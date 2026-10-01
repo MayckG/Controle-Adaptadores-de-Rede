@@ -4,62 +4,35 @@
 
 ```powershell
 Get-NetAdapter -Physical |
-    Select-Object Name,
-        InterfaceDescription,
-        InterfaceType,
-        HardwareInterface,
-        NdisPhysicalMedium,
-        Status,
-        MediaConnectionState
+    Select-Object Name, InterfaceDescription, InterfaceType,
+        HardwareInterface, NdisPhysicalMedium,
+        Status, MediaConnectionState, InterfaceGuid
 ```
 
-## 2. Verificar a tarefa
+## 2. Verificar a conectividade do Ethernet
 
 ```powershell
-Get-ScheduledTask `
-    -TaskName "Controle Automático de Rede"
+Get-NetIPConfiguration -InterfaceAlias "Ethernet"
 ```
+
+O Wi-Fi só é desativado se o Ethernet tiver IPv4 válido (não 169.254.x.x) ou IPv6 global e, por padrão, gateway padrão.
+
+## 3. Verificar a tarefa
 
 ```powershell
-Get-ScheduledTaskInfo `
-    -TaskName "Controle Automático de Rede"
+Get-ScheduledTask -TaskName "Controle Automático de Rede"
+Get-ScheduledTaskInfo -TaskName "Controle Automático de Rede"
 ```
 
-## 3. Verificar estado
+## 4. Verificar o log
 
-```text
-C:\ProgramData\ControleRede\estado.json
-```
-
-Esperado enquanto o cabo estiver conectado:
-
-```json
-{
-    "DisabledWifiAdapters": [
-        "Wi-Fi"
-    ]
-}
-```
-
-Depois da reativação bem-sucedida:
-
-```json
-{
-    "DisabledWifiAdapters": []
-}
-```
-
-## 4. Verificar log
-
-```text
-C:\ProgramData\ControleRede\logs\controle-rede.log
-```
+`C:\ProgramData\ControleRede\logs\controle-rede.log`
 
 Sequência esperada:
 
 ```text
-ESTADO | Ethernet físico CONECTADO.
-AÇÃO | Desativando Wi-Fi: Wi-Fi
+ESTADO | Ethernet físico CONECTADO e com rede.
+AÇÃO | Desativando Wi-Fi: Wi-Fi (Intel(R) Wi-Fi 6)
 OK | Wi-Fi desativado: Wi-Fi
 
 ESTADO | Nenhum Ethernet físico conectado.
@@ -67,38 +40,43 @@ AÇÃO | Reativando Wi-Fi: Wi-Fi
 OK | Wi-Fi reativado: Wi-Fi
 ```
 
-## 5. Topaz Loopback
+## 5. O Wi-Fi não é desativado com o cabo conectado
 
-Se aparecer:
+Procure no log:
 
 ```text
-Topaz Loopback
+ESTADO | Ethernet com link físico, mas sem rede utilizável (...)
 ```
 
-ele não deve ser considerado Ethernet físico pela versão 1.1.
+O motivo aparece entre parênteses (`sem endereço IP válido` ou `sem gateway padrão`). Em redes cabeadas isoladas, sem gateway, defina `"RequireDefaultGateway": false` no `config.json`.
 
-## 6. Reativação falha
+## 6. Um adaptador Ethernet válido é ignorado
 
-Se o log mostrar:
+Verifique se o nome ou a descrição contém algum trecho de `ExcludedAdapterPatterns` no `config.json`.
+
+## 7. Reativação falha
 
 ```text
 ERRO | Falha ao reativar Wi-Fi
 ```
 
-o nome permanece em `estado.json`, permitindo nova tentativa no ciclo seguinte.
+O adaptador permanece no `estado.json` e uma nova tentativa ocorre no ciclo seguinte. O mesmo erro é registrado apenas uma vez.
 
-## 7. Teste direto
+## 8. Wi-Fi ficou desativado após remover a automação
 
-Como administrador:
+Versões anteriores à 1.2 não reativavam o Wi-Fi na desinstalação. Reative em Configurações > Rede e Internet > Configurações de rede avançadas, ou:
 
 ```powershell
-powershell.exe `
-    -ExecutionPolicy Bypass `
-    -File .\src\ControleRede.ps1
+Get-NetAdapter -Physical | Where-Object InterfaceType -eq 71 | Enable-NetAdapter -Confirm:$false
 ```
 
-Interrompa com:
+## 9. Teste direto
 
-```text
-Ctrl + C
+Pare a tarefa antes (o mutex impede duas instâncias) e, como administrador:
+
+```powershell
+Stop-ScheduledTask -TaskName "Controle Automático de Rede"
+powershell.exe -ExecutionPolicy Bypass -File .\src\ControleRede.ps1
 ```
+
+Interrompa com `Ctrl + C`.

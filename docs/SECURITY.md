@@ -2,54 +2,39 @@
 
 ## Privilégios
 
-A tarefa executa como:
+A tarefa executa como `NT AUTHORITY\SYSTEM` com `RunLevel = Highest`, necessário para ativar e desativar adaptadores sem depender da sessão do usuário.
 
-```text
-NT AUTHORITY\SYSTEM
+## Permissões da pasta de instalação
+
+Como o script é executado como SYSTEM, quem puder alterá-lo poderia executar código com privilégio máximo. Por isso o instalador:
+
+- assume a propriedade de `C:\ProgramData\ControleRede` e de todo o conteúdo (inclusive arquivos criados antes da instalação);
+- remove a herança de permissões do ProgramData;
+- concede controle total apenas a SYSTEM e Administradores e somente leitura a Usuários.
+
+As permissões são aplicadas por SID, funcionando em Windows de qualquer idioma.
+
+Para conferir:
+
+```powershell
+icacls "C:\ProgramData\ControleRede"
 ```
-
-com:
-
-```text
-RunLevel = Highest
-```
-
-Isso permite controlar adaptadores sem depender da sessão do usuário.
 
 ## ExecutionPolicy
 
-Nenhuma política permanente do PowerShell é alterada.
-
-O projeto usa:
-
-```text
--ExecutionPolicy Bypass
-```
-
-somente nos processos envolvidos na instalação e execução.
+Nenhuma política permanente do PowerShell é alterada. `-ExecutionPolicy Bypass` é usado somente nos processos de instalação e execução.
 
 ## Estado
 
-O arquivo:
-
-```text
-estado.json
-```
-
-registra somente os nomes dos adaptadores Wi-Fi que foram desativados pela automação.
+O `estado.json` registra apenas GUID, nome e descrição dos adaptadores Wi-Fi desativados pela automação.
 
 ## Logs
 
-Não publique logs reais no GitHub.
+Não publique logs reais no GitHub; o `.gitignore` exclui arquivos `.log`.
 
-O `.gitignore` exclui arquivos `.log`.
+## Recomendações para distribuição a clientes
 
-## Recomendações
-
-Em ambiente corporativo:
-
-- teste antes de distribuir;
-- valide políticas de execução;
-- considere assinatura de scripts;
-- revise o uso de `SYSTEM`;
-- distribua somente para máquinas autorizadas.
+- teste em um equipamento piloto antes de distribuir;
+- considere assinar os scripts com certificado de assinatura de código;
+- distribua somente para máquinas autorizadas;
+- informe ao cliente como desinstalar e onde ficam os logs.
